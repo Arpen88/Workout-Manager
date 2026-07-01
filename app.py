@@ -5,19 +5,63 @@ from datetime import datetime
 
 DB_FILE = "workout_db.json"
 
-# Load data from the JSON file database (with strict structure verification)
+# Load data from the JSON file database (with pre-assigned initial workout data)
 def load_data():
-    default_structure = {"users": [], "workouts": {}}
+    # Pre-coded routines from your sheet text image
+    default_structure = {
+        "users": [
+            {"name": "Anders Schilling", "role": "User / Athlete"},
+            {"name": "Anders Coach", "role": "Creator / Coach / Trainer"}
+        ],
+        "workouts": {
+            "Anders Schilling": [
+                {
+                    "routine_name": "Day 1: Lower Body Power",
+                    "due_date": "No Due Date",
+                    "exercises": [
+                        {"title": "Warm-Up", "description": "3 Rounds of: 10 Bodyweight Squats, 10 Banded Good Mornings, 20-second Plank, 50-foot Bear Crawl.", "video_url": None, "logged": None},
+                        {"title": "A1. Trap Bar Deadlift or Heavy Kettlebell Deadlift", "description": "4 sets x 5 reps. Rest 90 seconds.", "video_url": None, "logged": None},
+                        {"title": "B1. Rear-Foot Elevated Split Squats (Bulgarian Split Squats)", "description": "3 sets x 8 reps per leg.", "video_url": None, "logged": None},
+                        {"title": "B2. Hanging Leg Raises or lying leg raise", "description": "3 sets x 10 reps.", "video_url": None, "logged": None},
+                        {"title": "C1. Kettlebell Swings", "description": "3 sets x 15 reps (Explosive, snapping the hips).", "video_url": None, "logged": None},
+                        {"title": "C2. Single-Leg Calf Raises (Deficit)", "description": "3 sets x 15 reps per leg (Slow down, explosive up to protect the Achilles).", "video_url": None, "logged": None}
+                    ]
+                },
+                {
+                    "routine_name": "Day 2: Upper Body & Core \"Armor\"",
+                    "due_date": "No Due Date",
+                    "exercises": [
+                        {"title": "Warm-Up", "description": "3 Rounds of: 10 Push-ups, 5 Pull-ups/Chin-ups, 15 Band Pull-aparts.", "video_url": None, "logged": None},
+                        {"title": "A1. Assisted Chin-Ups or Bodyweight Pull-Ups", "description": "4 sets x max strict reps.", "video_url": None, "logged": None},
+                        {"title": "B1. Sandbag/Clean Over-the-Shoulder or DB Clean & Press", "description": "3 sets x 6 reps.", "video_url": None, "logged": None},
+                        {"title": "B2. Push-Ups", "description": "3 sets x 15-20 reps (Weighted if needed or Feet Elevated).", "video_url": None, "logged": None},
+                        {"title": "C1. Farmer's Walks (Heavy Dumbbells or Kettlebells)", "description": "4 sets x 100 feet.", "video_url": None, "logged": None},
+                        {"title": "C2. Ab Wheel Rollouts or RKC Plank", "description": "4 sets x 10 reps (or 45-second hold).", "video_url": None, "logged": None}
+                    ]
+                },
+                {
+                    "routine_name": "Day 3: The P74 Strength Circuit",
+                    "due_date": "No Due Date",
+                    "exercises": [
+                        {"title": "Circuit Instructions", "description": "Perform the following as a continuous circuit. Rest 60-90 seconds only at the end of each round. Complete 4 total rounds.", "video_url": None, "logged": None},
+                        {"title": "Goblet Squat (with Kettlebell or Sandbag)", "description": "12 Reps.", "video_url": None, "logged": None},
+                        {"title": "Renegade Rows (Push-up, Row Right, Row Left)", "description": "8 Reps total.", "video_url": None, "logged": None},
+                        {"title": "Walking Lunges (Bodyweight or holding light weights)", "description": "20 Steps total.", "video_url": None, "logged": None},
+                        {"title": "10 Explosive Push-ups & Sled Drag/Push", "description": "100 feet (If no sled, substitute with a heavy 100-foot farmer walk).", "video_url": None, "logged": None}
+                    ]
+                }
+            ]
+        }
+    }
+    
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r") as f:
                 data = json.load(f)
-                # Verify that it's a valid dictionary and has the required root keys
                 if isinstance(data, dict) and "users" in data and "workouts" in data:
                     return data
         except:
             pass
-    # If file is corrupt, missing, or old format, force-reset to empty data
     return default_structure
 
 # Save data back to the JSON file database

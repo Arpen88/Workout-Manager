@@ -12,7 +12,6 @@ def load_data():
                 return json.load(f)
         except:
             pass
-    # Default blank structure if file doesn't exist or is corrupted
     return {"users": [], "workouts": {}}
 
 # Save data back to the JSON file database
@@ -20,18 +19,16 @@ def save_data(data):
     with open(DB_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-# Load database into session state
 db = load_data()
 
 st.title("🏋️‍♂️ Workout Manager")
 st.caption("Permanent Cross-Device Workout Sync")
 st.write("---")
 
-# 1. Login / Profile Selection Side
+# Login / Profile Selection Side
 st.sidebar.header("🔐 Login Profile")
 user_type = st.sidebar.radio("Select Role:", ["Creator / Coach", "User / Athlete"])
 
-# Manage User Accounts List dynamically
 st.sidebar.subheader("Manage Accounts")
 new_user_reg = st.sidebar.text_input("Register New Athlete Name:")
 if st.sidebar.button("Register Athlete"):
@@ -53,92 +50,117 @@ else:
     if user_type == "Creator / Coach":
         st.header(f"Welcome, Coach!")
         
-        # Section A: Assign a New Workout
-        st.subheader("➕ Assign a New Workout")
+        st.subheader("➕ Assign a Multi-Exercise Workout")
         if db["users"]:
             target_user = st.selectbox("Select Athlete:", db["users"])
-            workout_title = st.text_input("Exercise Title (e.g., Squat):")
-            workout_desc = st.text_area("Instructions:")
+            routine_title = st.text_input("Routine Name (e.g., Upper Body, Leg Day):")
             
-            if st.button("Assign Workout"):
-                if workout_title.strip() and workout_desc.strip():
-                    new_workout = {
-                        "title": workout_title,
-                        "description": workout_desc,
+            # Use Session State to dynamically add exercises to a list before saving
+            if "temp_exercises" not in st.session_state:
+                st.session_state.temp_exercises = []
+                
+            st.write("#### Add Exercises to this Routine:")
+            ex_title = st.text_input("Exercise Name (e.g., Bench Press, Pull Ups):")
+            ex_desc = st.text_area("Instructions (e.g., 4 sets of 8 reps):")
+            
+            if st.button("Add Exercise to List"):
+                if ex_title.strip():
+                    st.session_state.temp_exercises.append({
+                        "title": ex_title,
+                        "description": ex_desc,
                         "logged": None
-                    }
-                    db["workouts"][target_user].append(new_workout)
-                    save_data(db)
-                    st.success(f"Assigned {workout_title} to {target_user}!")
-                    st.rerun()
+                    })
+                    st.success(f"Added {ex_title} to current build list!")
                 else:
-                    st.error("Please fill out both the title and instructions.")
+                    st.error("Exercise Name is required.")
+                    
+            if st.session_state.temp_exercises:
+                st.write("**Current Build List:**")
+                for i, ex in enumerate(st.session_state.temp_exercises):
+                    st.text(f"  {i+1}. {ex['title']}")
+                    
+                if st.button("🚀 Assign Full Routine to Athlete", type="primary"):
+                    if routine_title.strip():
+                        new_routine = {
+                            "routine_name": routine_title,
+                            "exercises": st.session_state.temp_exercises
+                        }
+                        db["workouts"][target_user].append(new_routine)
+                        save_data(db)
+                        st.session_state.temp_exercises = [] # Reset list
+                        st.success(f"Successfully assigned '{routine_title}' to {target_user}!")
+                        st.rerun()
+                    else:
+                        st.error("Please provide a Routine Name before assigning.")
         else:
             st.info("Register an athlete in the sidebar first to assign workouts.")
 
         st.write("---")
         
-        # Section B: Review Athlete Progress
         st.subheader("📊 Review Athlete Progress")
         if db["users"]:
             review_user = st.selectbox("View Workouts For:", db["users"], key="review_user")
-            user_workouts = db["workouts"].get(review_user, [])
+            user_routines = db["workouts"].get(review_user, [])
             
-            if not user_workouts:
-                st.info(f"{review_user} has no workouts assigned.")
+            if not user_routines:
+                st.info(f"{review_user} has no routines assigned.")
             else:
-                for idx, wk in enumerate(user_workouts):
-                    with st.expander(f"Exercise {idx+1}: {wk['title']}"):
-                        st.write(f"**Instructions:** {wk['description']}")
-                        if wk["logged"] is None:
-                            st.info("Status: ⏳ Pending Submission")
-                        else:
-                            st.success("Status: ✅ Completed")
-                            log = wk["logged"]
-                            st.table({
-                                "Metric": ["Sets", "Reps", "Weight", "Athlete Comments"],
-                                "Submitted Value": [log['sets'], log['reps'], log['weight'], log['comment']]
-                            })
+                for idx, rt in enumerate(user_routines):
+                    with st.expander(f"📋 Routine: {rt['routine_name']}"):
+                        for ex in rt["exercises"]:
+                            st.write(f"🏋️ **{ex['title']}**")
+                            st.write(f"Target: {ex['description']}")
+                            if ex["logged"] is None:
+                                st.info("Status: ⏳ Pending Submission")
+                            else:
+                                st.success("Status: ✅ Completed")
+                                log = ex["logged"]
+                                st.table({
+                                    "Metric": ["Sets", "Reps", "Weight", "Notes"],
+                                    "Submitted": [log['sets'], log['reps'], log['weight'], log['comment']]
+                                })
+                            st.write("---")
         else:
             st.info("No athlete records found.")
 
     # ================= USER SIDE =================
     else:
         st.header(f"Welcome back, {user_name}!")
-        my_workouts = db["workouts"].get(user_name, [])
+        my_routines = db["workouts"].get(user_name, [])
         
-        st.subheader("📋 Your Assigned Workouts")
-        if not my_workouts:
+        st.subheader("📋 Your Assigned Routines")
+        if not my_routines:
             st.info("No workouts assigned to you right now!")
         else:
-            for idx, wk in enumerate(my_workouts):
-                status_label = "(✅ Logged)" if wk["logged"] else "(⏳ To Do)"
-                with st.expander(f"🏋️ {wk['title']} {status_label}"):
-                    st.write(f"**Coach's Instructions:** {wk['description']}")
-                    st.write("---")
-                    
-                    if wk["logged"] is not None:
-                        st.write("**You logged:**")
-                        st.write(f"- **Sets:** {wk['logged']['sets']} | **Reps:** {wk['logged']['reps']} | **Weight:** {wk['logged']['weight']}")
-                        st.write(f"- **Your Comment:** {wk['logged']['comment']}")
-                    else:
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            sets = st.number_input("Sets Completed", min_value=0, step=1, key=f"sets_{idx}")
-                        with col2:
-                            reps = st.number_input("Reps per Set", min_value=0, step=1, key=f"reps_{idx}")
-                        with col3:
-                            weight = st.number_input("Weight Used", min_value=0.0, step=2.5, key=f"weight_{idx}")
-                            
-                        comment = st.text_input("Add Comments:", key=f"comment_{idx}")
+            for r_idx, rt in enumerate(my_routines):
+                with st.expander(f"🧱 Routine Group: {rt['routine_name']}"):
+                    for e_idx, wk in enumerate(rt["exercises"]):
+                        st.write(f"### {wk['title']}")
+                        st.write(f"**Instructions:** {wk['description']}")
                         
-                        if st.button("Submit Workout Log", key=f"btn_{idx}"):
-                            db["workouts"][user_name][idx]["logged"] = {
-                                "sets": sets,
-                                "reps": reps,
-                                "weight": weight,
-                                "comment": comment
-                            }
-                            save_data(db)
-                            st.success("Workout logged successfully!")
-                            st.rerun()
+                        if wk["logged"] is not None:
+                            st.success("✅ Logged")
+                            st.write(f"- **Sets:** {wk['logged']['sets']} | **Reps:** {wk['logged']['reps']} | **Weight:** {wk['logged']['weight']}")
+                            st.write(f"- **Your Comment:** {wk['logged']['comment']}")
+                        else:
+                            col1, col2, col3 = st.columns(3)
+                            with col1:
+                                sets = st.number_input("Sets Completed", min_value=0, step=1, key=f"sets_{r_idx}_{e_idx}")
+                            with col2:
+                                reps = st.number_input("Reps per Set", min_value=0, step=1, key=f"reps_{r_idx}_{e_idx}")
+                            with col3:
+                                weight = st.number_input("Weight Used", min_value=0.0, step=2.5, key=f"weight_{r_idx}_{e_idx}")
+                                
+                            comment = st.text_input("Add Comments:", key=f"comment_{r_idx}_{e_idx}")
+                            
+                            if st.button("Submit This Exercise Log", key=f"btn_{r_idx}_{e_idx}"):
+                                db["workouts"][user_name][r_idx]["exercises"][e_idx]["logged"] = {
+                                    "sets": sets,
+                                    "reps": reps,
+                                    "weight": weight,
+                                    "comment": comment
+                                }
+                                save_data(db)
+                                st.success("Exercise logged!")
+                                st.rerun()
+                        st.write("---")
